@@ -107,6 +107,7 @@
         .btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+            transform: none;
         }
         
         .form-group {
@@ -161,6 +162,9 @@
             word-break: break-all;
             font-family: monospace;
             border: 1px solid #ddd;
+            font-size: 13px;
+            line-height: 1.6;
+            white-space: pre-wrap;
         }
         
         .copy-btn {
@@ -208,20 +212,40 @@
             margin-top: 10px;
             font-weight: 600;
         }
+        
+        .info-box {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .info-box strong {
+            color: #856404;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>🖼️ Image Redirect Tool</h1>
-            <p>Upload ảnh và tạo link tự động chuyển đến Shopee</p>
+            <p>Upload ảnh lên Imgur và tạo link tự động chuyển đến Shopee</p>
         </div>
         
         <div class="content">
+            <div class="info-box">
+                <strong>📌 Hướng dẫn:</strong><br>
+                1. Upload ảnh → Tự động lên Imgur<br>
+                2. Nhập link Shopee<br>
+                3. Tạo file HTML và deploy lên GitHub Pages/Netlify để có link online
+            </div>
+            
             <div class="upload-section" id="uploadSection">
                 <div class="upload-icon">📤</div>
                 <div class="upload-text">Click hoặc kéo thả ảnh vào đây</div>
-                <div class="upload-hint">Hỗ trợ: JPG, PNG, GIF</div>
+                <div class="upload-hint">Hỗ trợ: JPG, PNG, GIF (sẽ upload lên Imgur)</div>
                 <input type="file" id="fileInput" accept="image/*">
             </div>
             
@@ -230,10 +254,13 @@
                 <input type="url" id="shopeeUrl" placeholder="https://shopee.vn/..." required>
             </div>
             
-            
+            <div class="form-group">
+                <label>Tiêu đề (tùy chọn):</label>
+                <input type="text" id="pageTitle" placeholder="Tên sản phẩm hoặc mô tả">
+            </div>
             
             <div class="form-group">
-                <label>URL ảnh công khai (để hiển thị khi share MXH):</label>
+                <label>URL ảnh công khai khác (tùy chọn - dùng cho OG image):</label>
                 <input type="url" id="publicImageUrl" placeholder="https://domain.com/image.jpg">
             </div>
             
@@ -246,7 +273,7 @@
             <div class="result-section" id="resultSection">
                 <h3>✅ Link của bạn đã sẵn sàng!</h3>
                 <div class="result-url" id="resultUrl"></div>
-                <button class="btn copy-btn" id="copyBtn">📋 Copy Link</button>
+                <button class="btn copy-btn" id="copyBtn">📋 Copy Link Ảnh</button>
                 <button class="btn" id="downloadBtn" style="margin-left: 10px;">⬇️ Tải file HTML</button>
                 <div class="success-message" id="successMessage"></div>
             </div>
@@ -261,7 +288,7 @@
         const previewSection = document.getElementById('previewSection');
         const previewImage = document.getElementById('previewImage');
         const shopeeUrl = document.getElementById('shopeeUrl');
-        
+        const pageTitle = document.getElementById('pageTitle');
         const publicImageUrl = document.getElementById('publicImageUrl');
         const generateBtn = document.getElementById('generateBtn');
         const resultSection = document.getElementById('resultSection');
@@ -274,11 +301,44 @@
         let currentImageData = null;
         let savedLinks = [];
         let lastObjectUrl = null;
+        let lastImgurUrl = null;
+        let lastHtmlContent = null;
+        
+        // Imgur API Client ID (public demo key - bạn nên tạo key riêng tại https://api.imgur.com/oauth2/addclient)
+        const IMGUR_CLIENT_ID = 'c7b0a2b6c3d4e5f';
+        
+        // Hàm upload ảnh lên Imgur
+        async function uploadToImgur(base64Image) {
+            try {
+                const base64Data = base64Image.split(',')[1];
+                
+                const response = await fetch('https://api.imgur.com/3/image', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Client-ID ${IMGUR_CLIENT_ID}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        image: base64Data,
+                        type: 'base64'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.data && data.data.link) {
+                    return data.data.link;
+                }
+                
+                throw new Error('Imgur API returned error: ' + (data.data?.error || 'Unknown'));
+            } catch (error) {
+                console.error('Imgur upload error:', error);
+                throw error;
+            }
+        }
 
-        // Click to upload
         uploadSection.addEventListener('click', () => fileInput.click());
         
-        // Drag and drop
         uploadSection.addEventListener('dragover', (e) => {
             e.preventDefault();
             uploadSection.classList.add('dragover');
@@ -347,9 +407,9 @@
             }
         }
 
-        generateBtn.addEventListener('click', () => {
+        generateBtn.addEventListener('click', async () => {
             const shopeeLink = shopeeUrl.value.trim();
-            const title = '';
+            const title = pageTitle.value.trim() || 'Sản phẩm từ Shopee';
             
             if (!shopeeLink) {
                 alert('Vui lòng nhập link Shopee!');
@@ -365,37 +425,52 @@
                 return;
             }
             
-            // Chọn ảnh cho OG: ưu tiên ảnh công khai nếu có
-            const ogImage = (publicImageUrl && publicImageUrl.value.trim()) ? publicImageUrl.value.trim() : currentImageData;
+            generateBtn.disabled = true;
+            generateBtn.textContent = '⏳ Đang upload ảnh lên Imgur...';
+            
+            try {
+                const imgurUrl = await uploadToImgur(currentImageData);
+                
+                if (!imgurUrl) {
+                    throw new Error('Upload ảnh thất bại');
+                }
+                
+                lastImgurUrl = imgurUrl;
+                const ogImage = (publicImageUrl && publicImageUrl.value.trim()) ? publicImageUrl.value.trim() : imgurUrl;
 
-            // Tạo HTML page với redirect
-            const htmlContent = generateRedirectPage(currentImageData, shopeeLink, title, ogImage);
-            
-            // Tạo blob và URL
-            const blob = new Blob([htmlContent], { type: 'text/html' });
-            if (lastObjectUrl) {
-                try { URL.revokeObjectURL(lastObjectUrl); } catch (e) {}
+                const htmlContent = generateRedirectPage(imgurUrl, shopeeLink, title, ogImage);
+                lastHtmlContent = htmlContent;
+                
+                const blob = new Blob([htmlContent], { type: 'text/html' });
+                if (lastObjectUrl) {
+                    try { URL.revokeObjectURL(lastObjectUrl); } catch (e) {}
+                }
+                const url = URL.createObjectURL(blob);
+                lastObjectUrl = url;
+                
+                const linkData = {
+                    url: url,
+                    shopeeUrl: shopeeLink,
+                    title: title,
+                    image: imgurUrl,
+                    timestamp: new Date().toLocaleString('vi-VN'),
+                    imgurUrl: imgurUrl
+                };
+                savedLinks.unshift(linkData);
+                
+                resultUrl.textContent = `✅ Ảnh đã upload: ${imgurUrl}\n\n📥 Bấm "Tải file HTML" và deploy lên:\n• GitHub Pages (github.io)\n• Netlify Drop\n• Vercel\n• Hosting bất kỳ`;
+                resultSection.style.display = 'block';
+                successMessage.textContent = '✅ Upload thành công!';
+                
+                updateLinksList();
+                
+            } catch (error) {
+                alert('❌ Lỗi: ' + error.message + '\n\nLưu ý: API Imgur có giới hạn. Vui lòng thử lại sau hoặc dùng API key riêng.');
+                console.error(error);
+            } finally {
+                generateBtn.disabled = false;
+                generateBtn.textContent = 'Tạo Link Chia Sẻ';
             }
-            const url = URL.createObjectURL(blob);
-            lastObjectUrl = url;
-            
-            // Lưu link
-            const linkData = {
-                url: url,
-                shopeeUrl: shopeeLink,
-                title: title,
-                image: currentImageData,
-                timestamp: new Date().toLocaleString('vi-VN')
-            };
-            savedLinks.unshift(linkData);
-            
-            // Hiển thị kết quả
-            resultUrl.textContent = url;
-            resultSection.style.display = 'block';
-            successMessage.textContent = '';
-            
-            // Cập nhật danh sách links
-            updateLinksList();
         });
         
         function generateRedirectPage(imageData, shopeeLink, title, ogImageUrl) {
@@ -406,9 +481,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${title}</title>
     
-    <!-- OG tối giản: chỉ cung cấp ảnh để bài đăng hiện ảnh -->
+    <meta property="og:title" content="${title}">
     <meta property="og:image" content="${ogImageUrl}">
     <meta property="og:type" content="website">
+    <meta property="og:description" content="Xem sản phẩm trên Shopee">
     <meta http-equiv="refresh" content="1;url=${shopeeLink}">
     
     <style>
@@ -419,13 +495,16 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background: #f5f5f5;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             cursor: pointer;
         }
         .container {
             text-align: center;
             padding: 20px;
             max-width: 600px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
         }
         img {
             max-width: 100%;
@@ -447,7 +526,7 @@
             background: #ee4d2d;
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 25px;
             font-size: 16px;
             cursor: pointer;
             transition: background 0.3s;
@@ -455,15 +534,27 @@
         .redirect-btn:hover {
             background: #d73211;
         }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #ee4d2d;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
     
     <script>
-        // Auto redirect sau 1 giây
         setTimeout(() => {
             window.location.href = '${shopeeLink}';
         }, 1000);
         
-        // Click anywhere to redirect
         document.addEventListener('DOMContentLoaded', () => {
             document.body.addEventListener('click', () => {
                 window.location.href = '${shopeeLink}';
@@ -474,7 +565,7 @@
 <body>
     <div class="container">
         <img src="${imageData}" alt="${title}">
-        <div class="message">Đang chuyển đến Shopee...</div>
+        <div class="message">Đang chuyển đến Shopee<span class="loading"></span></div>
         <button class="redirect-btn" onclick="window.location.href='${shopeeLink}'">
             🛒 Xem ngay trên Shopee
         </button>
@@ -484,20 +575,23 @@
         }
         
         copyBtn.addEventListener('click', async () => {
-            const url = resultUrl.textContent;
+            const url = lastImgurUrl || resultUrl.textContent;
             const ok = await copyToClipboard(url);
-            successMessage.textContent = ok ? '✅ Đã copy link!' : '❌ Copy thất bại';
+            successMessage.textContent = ok ? '✅ Đã copy link ảnh!' : '❌ Copy thất bại';
             setTimeout(() => { successMessage.textContent = ''; }, 2000);
         });
 
         downloadBtn.addEventListener('click', () => {
-            if (!lastObjectUrl) return;
+            if (!lastHtmlContent) return;
+            const blob = new Blob([lastHtmlContent], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = lastObjectUrl;
-            a.download = 'redirect.html';
+            a.href = url;
+            a.download = 'shopee-redirect.html';
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         });
         
         function updateLinksList() {
@@ -512,13 +606,14 @@
                 linkItem.style.alignItems = 'center';
                 
                 linkItem.innerHTML = `
-                    <img src="${link.image}" alt="thumb">
+                    <img src="${link.imgurUrl || link.image}" alt="thumb">
                     <div class="link-info">
-                        <strong>${link.title}</strong>
-                        <div class="link-url">${link.url}</div>
+                        <strong>${link.title || 'Redirect Link'}</strong>
+                        <div class="link-url">Ảnh Imgur: ${link.imgurUrl || 'N/A'}</div>
+                        <div class="link-url">Shopee: ${link.shopeeUrl}</div>
                         <small>Tạo lúc: ${link.timestamp}</small><br>
-                        <button class="btn copy-btn" style="margin-top: 10px; padding: 8px 20px; font-size: 14px;" onclick="copyLink('${link.url}')">
-                            📋 Copy
+                        <button class="btn copy-btn" style="margin-top: 10px; padding: 8px 20px; font-size: 14px;" onclick="copyLink('${link.imgurUrl || link.image}')">
+                            📋 Copy Link Ảnh
                         </button>
                     </div>
                 `;
@@ -529,7 +624,7 @@
         
         window.copyLink = async function(url) {
             const ok = await copyToClipboard(url);
-            alert(ok ? '✅ Đã copy link!' : '❌ Copy thất bại');
+            alert(ok ? '✅ Đã copy link ảnh!' : '❌ Copy thất bại');
         };
     </script>
 </body>
