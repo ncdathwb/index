@@ -214,8 +214,8 @@
         }
         
         .info-box {
-            background: #d1fae5;
-            border: 1px solid #10b981;
+            background: #dbeafe;
+            border: 1px solid #3b82f6;
             padding: 15px;
             border-radius: 8px;
             margin-bottom: 20px;
@@ -223,7 +223,7 @@
         }
         
         .info-box strong {
-            color: #065f46;
+            color: #1e40af;
         }
         
         .api-key-section {
@@ -243,36 +243,49 @@
             color: #2563eb;
             font-weight: 600;
         }
+        
+        .warning-box {
+            background: #fee2e2;
+            border: 2px solid #ef4444;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .warning-box strong {
+            color: #991b1b;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>🖼️ Image Redirect Tool</h1>
-            <p>Upload ảnh lên ImgBB và tạo link tự động chuyển đến Shopee</p>
+            <p>Tạo link ảnh sạch để share Facebook - Click ảnh → Chuyển Shopee</p>
         </div>
         
         <div class="content">
+            <div class="info-box">
+                <strong>✨ Đặc biệt:</strong> Khi share lên Facebook sẽ CHỈ HIỆN ẢNH, không có text hay link phía dưới!<br>
+                Click vào ảnh → Tự động chuyển đến Shopee
+            </div>
+            
             <div class="api-key-section">
-                <h3>🔑 Cần API Key ImgBB (Miễn phí)</h3>
+                <h3>🔑 ImgBB API Key (Miễn phí)</h3>
                 <p>1. Truy cập: <a href="https://api.imgbb.com/" target="_blank">https://api.imgbb.com/</a></p>
-                <p>2. Đăng ký tài khoản miễn phí</p>
-                <p>3. Lấy API Key và dán vào ô bên dưới</p>
+                <p>2. Đăng ký và lấy API Key</p>
                 <div class="form-group" style="margin-top: 15px;">
-                    <label>ImgBB API Key của bạn:</label>
+                    <label>ImgBB API Key:</label>
                     <input type="text" id="apiKeyInput" placeholder="Dán API key vào đây...">
-                    <small style="color: #666; display: block; margin-top: 5px;">
-                        Key sẽ được lưu trong trình duyệt này
-                    </small>
                 </div>
             </div>
             
-            <div class="info-box">
-                <strong>✅ Ưu điểm ImgBB:</strong><br>
-                • Miễn phí unlimited uploads<br>
-                • Không giới hạn bandwidth<br>
-                • Ảnh lưu vĩnh viễn<br>
-                • Tốc độ nhanh
+            <div class="warning-box">
+                <strong>⚠️ Lưu ý quan trọng:</strong><br>
+                • Sau khi tạo, tải file HTML về<br>
+                • Deploy lên Vercel/Netlify/GitHub Pages<br>
+                • Share link deploy (VD: yoursite.vercel.app) lên Facebook<br>
+                • Facebook sẽ chỉ hiển thị ảnh, không có text thừa!
             </div>
             
             <div class="upload-section" id="uploadSection">
@@ -283,32 +296,32 @@
             </div>
             
             <div class="form-group">
-                <label>Link Shopee của bạn:</label>
+                <label>Link Shopee đích:</label>
                 <input type="url" id="shopeeUrl" placeholder="https://shopee.vn/..." required>
             </div>
             
-            <div class="form-group">
-                <label>Tiêu đề (tùy chọn):</label>
-                <input type="text" id="pageTitle" placeholder="Tên sản phẩm hoặc mô tả">
-            </div>
-            
-            <div class="form-group">
-                <label>URL ảnh công khai khác (tùy chọn - dùng cho OG image):</label>
-                <input type="url" id="publicImageUrl" placeholder="https://domain.com/image.jpg">
-            </div>
-            
-            <button class="btn" id="generateBtn">🚀 Tạo Link Chia Sẻ</button>
+            <button class="btn" id="generateBtn">🚀 Tạo File HTML</button>
             
             <div class="preview-section" id="previewSection">
+                <h4>Preview ảnh:</h4>
                 <img id="previewImage" class="preview-image" alt="Preview">
             </div>
             
             <div class="result-section" id="resultSection">
-                <h3>✅ Link của bạn đã sẵn sàng!</h3>
+                <h3>✅ Đã tạo xong!</h3>
                 <div class="result-url" id="resultUrl"></div>
-                <button class="btn copy-btn" id="copyBtn">📋 Copy Link Ảnh</button>
-                <button class="btn" id="downloadBtn" style="margin-left: 10px;">⬇️ Tải file HTML</button>
+                <button class="btn copy-btn" id="copyBtn">📋 Copy Link Ảnh ImgBB</button>
+                <button class="btn" id="downloadBtn" style="margin-left: 10px;">⬇️ Tải File HTML</button>
                 <div class="success-message" id="successMessage"></div>
+                
+                <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 8px; border: 1px solid #ffc107;">
+                    <strong>📌 Bước tiếp theo:</strong><br>
+                    1. Bấm "Tải File HTML" ở trên<br>
+                    2. Deploy file lên Vercel/Netlify<br>
+                    3. Lấy link deploy (VD: mysite.vercel.app)<br>
+                    4. Share link đó lên Facebook<br>
+                    5. Facebook sẽ chỉ hiện ảnh sạch sẽ!
+                </div>
             </div>
             
             <div class="links-list" id="linksList"></div>
@@ -321,8 +334,6 @@
         const previewSection = document.getElementById('previewSection');
         const previewImage = document.getElementById('previewImage');
         const shopeeUrl = document.getElementById('shopeeUrl');
-        const pageTitle = document.getElementById('pageTitle');
-        const publicImageUrl = document.getElementById('publicImageUrl');
         const generateBtn = document.getElementById('generateBtn');
         const resultSection = document.getElementById('resultSection');
         const resultUrl = document.getElementById('resultUrl');
@@ -336,14 +347,12 @@
         let savedLinks = [];
         let lastImgBBUrl = null;
         let lastHtmlContent = null;
-        
-        // Load API key from memory
         let storedApiKey = '';
+        
         apiKeyInput.addEventListener('input', (e) => {
             storedApiKey = e.target.value.trim();
         });
         
-        // Hàm upload ảnh lên ImgBB
         async function uploadToImgBB(base64Image) {
             if (!storedApiKey) {
                 throw new Error('Vui lòng nhập ImgBB API Key!');
@@ -351,7 +360,6 @@
             
             try {
                 const base64Data = base64Image.split(',')[1];
-                
                 const formData = new FormData();
                 formData.append('image', base64Data);
                 
@@ -450,10 +458,9 @@
 
         generateBtn.addEventListener('click', async () => {
             const shopeeLink = shopeeUrl.value.trim();
-            const title = pageTitle.value.trim() || 'Sản phẩm từ Shopee';
             
             if (!storedApiKey) {
-                alert('❌ Vui lòng nhập ImgBB API Key trước!\n\nTruy cập: https://api.imgbb.com/ để lấy key miễn phí.');
+                alert('❌ Vui lòng nhập ImgBB API Key!\n\nTruy cập: https://api.imgbb.com/');
                 apiKeyInput.focus();
                 return;
             }
@@ -463,7 +470,7 @@
                 return;
             }
             if (!isValidShopeeUrl(shopeeLink)) {
-                alert('Link không hợp lệ. Vui lòng nhập URL bắt đầu bằng http hoặc https.');
+                alert('Link không hợp lệ. Vui lòng nhập URL đầy đủ.');
                 return;
             }
             
@@ -483,136 +490,85 @@
                 }
                 
                 lastImgBBUrl = imgbbUrl;
-                const ogImage = (publicImageUrl && publicImageUrl.value.trim()) ? publicImageUrl.value.trim() : imgbbUrl;
-
-                const htmlContent = generateRedirectPage(imgbbUrl, shopeeLink, title, ogImage);
+                const htmlContent = generateCleanRedirectPage(imgbbUrl, shopeeLink);
                 lastHtmlContent = htmlContent;
                 
                 const linkData = {
                     shopeeUrl: shopeeLink,
-                    title: title,
                     image: imgbbUrl,
                     timestamp: new Date().toLocaleString('vi-VN'),
                     imgbbUrl: imgbbUrl
                 };
                 savedLinks.unshift(linkData);
                 
-                resultUrl.textContent = `✅ Ảnh đã upload thành công!\n\nLink ảnh ImgBB: ${imgbbUrl}\n\n📥 Bấm "Tải file HTML" bên dưới và deploy lên:\n• GitHub Pages\n• Netlify Drop  \n• Vercel\n• Hosting bất kỳ`;
+                resultUrl.textContent = `✅ Upload thành công!\n\nLink ảnh ImgBB: ${imgbbUrl}\n\n📥 Bấm "Tải File HTML" và deploy lên Vercel/Netlify`;
                 resultSection.style.display = 'block';
-                successMessage.textContent = '✅ Upload thành công! Có thể tải file HTML ngay.';
+                successMessage.textContent = '✅ Sẵn sàng tải xuống!';
                 
                 updateLinksList();
                 
             } catch (error) {
                 let errorMsg = error.message;
                 if (errorMsg.includes('Invalid API key')) {
-                    errorMsg = 'API Key không hợp lệ! Vui lòng kiểm tra lại.';
+                    errorMsg = 'API Key không hợp lệ!';
                 }
                 alert('❌ Lỗi: ' + errorMsg);
                 console.error(error);
             } finally {
                 generateBtn.disabled = false;
-                generateBtn.textContent = '🚀 Tạo Link Chia Sẻ';
+                generateBtn.textContent = '🚀 Tạo File HTML';
             }
         });
         
-        function generateRedirectPage(imageData, shopeeLink, title, ogImageUrl) {
+        function generateCleanRedirectPage(imageUrl, shopeeLink) {
             return `<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${title}</title>
+    <title>.</title>
     
-    <meta property="og:title" content="${title}">
-    <meta property="og:image" content="${ogImageUrl}">
+    <!-- Meta tags tối giản để Facebook CHỈ HIỆN ẢNH -->
+    <meta property="og:image" content="${imageUrl}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
     <meta property="og:type" content="website">
-    <meta property="og:description" content="Xem sản phẩm trên Shopee">
-    <meta http-equiv="refresh" content="1;url=${shopeeLink}">
+    
+    <!-- Redirect ngay lập tức -->
+    <meta http-equiv="refresh" content="0;url=${shopeeLink}">
     
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: Arial, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #000;
             cursor: pointer;
-        }
-        .container {
-            text-align: center;
-            padding: 20px;
-            max-width: 600px;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
         }
         img {
             max-width: 100%;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            transition: transform 0.3s;
-        }
-        img:hover {
-            transform: scale(1.05);
-        }
-        .message {
-            margin-top: 20px;
-            font-size: 18px;
-            color: #333;
-        }
-        .redirect-btn {
-            margin-top: 20px;
-            padding: 15px 30px;
-            background: #ee4d2d;
-            color: white;
-            border: none;
-            border-radius: 25px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-        .redirect-btn:hover {
-            background: #d73211;
-        }
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #ee4d2d;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-left: 10px;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            max-height: 100vh;
+            object-fit: contain;
         }
     </style>
     
     <script>
-        setTimeout(() => {
-            window.location.href = '${shopeeLink}';
-        }, 1000);
+        // Redirect ngay khi load
+        window.location.replace('${shopeeLink}');
         
+        // Click anywhere cũng redirect
         document.addEventListener('DOMContentLoaded', () => {
             document.body.addEventListener('click', () => {
-                window.location.href = '${shopeeLink}';
+                window.location.replace('${shopeeLink}');
             });
         });
     <\/script>
 </head>
 <body>
-    <div class="container">
-        <img src="${imageData}" alt="${title}">
-        <div class="message">Đang chuyển đến Shopee<span class="loading"></span></div>
-        <button class="redirect-btn" onclick="window.location.href='${shopeeLink}'">
-            🛒 Xem ngay trên Shopee
-        </button>
-    </div>
+    <img src="${imageUrl}" alt="">
 </body>
 </html>`;
         }
@@ -624,45 +580,47 @@
                 return;
             }
             const ok = await copyToClipboard(url);
-            successMessage.textContent = ok ? '✅ Đã copy link ảnh ImgBB!' : '❌ Copy thất bại';
+            successMessage.textContent = ok ? '✅ Đã copy link ảnh!' : '❌ Copy thất bại';
             setTimeout(() => { successMessage.textContent = ''; }, 2000);
         });
 
         downloadBtn.addEventListener('click', () => {
             if (!lastHtmlContent) {
-                alert('Chưa có file HTML để tải!');
+                alert('Chưa có file để tải!');
                 return;
             }
             const blob = new Blob([lastHtmlContent], { type: 'text/html' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'shopee-redirect.html';
+            a.download = 'index.html';
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+            
+            alert('✅ Đã tải file index.html!\n\nBước tiếp:\n1. Deploy lên Vercel/Netlify\n2. Share link deploy lên Facebook\n3. FB sẽ chỉ hiện ảnh!');
         });
         
         function updateLinksList() {
             if (savedLinks.length === 0) return;
             
-            linksList.innerHTML = '<h3 style="margin-bottom: 15px;">📝 Danh sách links đã tạo:</h3>';
+            linksList.innerHTML = '<h3 style="margin-bottom: 15px;">📝 Danh sách đã tạo:</h3>';
             
-            savedLinks.forEach((link, index) => {
+            savedLinks.forEach((link) => {
                 const linkItem = document.createElement('div');
                 linkItem.className = 'link-item';
                 linkItem.style.display = 'flex';
                 linkItem.style.alignItems = 'center';
                 
                 linkItem.innerHTML = `
-                    <img src="${link.imgbbUrl || link.image}" alt="thumb">
+                    <img src="${link.imgbbUrl}" alt="thumb">
                     <div class="link-info">
-                        <strong>${link.title || 'Redirect Link'}</strong>
-                        <div class="link-url">Ảnh ImgBB: ${link.imgbbUrl || 'N/A'}</div>
+                        <strong>Redirect Link</strong>
+                        <div class="link-url">Ảnh: ${link.imgbbUrl}</div>
                         <div class="link-url">Shopee: ${link.shopeeUrl}</div>
                         <small>Tạo lúc: ${link.timestamp}</small><br>
-                        <button class="btn copy-btn" style="margin-top: 10px; padding: 8px 20px; font-size: 14px;" onclick="copyLink('${link.imgbbUrl || link.image}')">
+                        <button class="btn copy-btn" style="margin-top: 10px; padding: 8px 20px; font-size: 14px;" onclick="copyLink('${link.imgbbUrl}')">
                             📋 Copy Link Ảnh
                         </button>
                     </div>
@@ -674,7 +632,7 @@
         
         window.copyLink = async function(url) {
             const ok = await copyToClipboard(url);
-            alert(ok ? '✅ Đã copy link ảnh!' : '❌ Copy thất bại');
+            alert(ok ? '✅ Đã copy!' : '❌ Copy thất bại');
         };
     </script>
 </body>
