@@ -214,8 +214,8 @@
         }
         
         .info-box {
-            background: #fff3cd;
-            border: 1px solid #ffc107;
+            background: #d1fae5;
+            border: 1px solid #10b981;
             padding: 15px;
             border-radius: 8px;
             margin-bottom: 20px;
@@ -223,7 +223,25 @@
         }
         
         .info-box strong {
-            color: #856404;
+            color: #065f46;
+        }
+        
+        .api-key-section {
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .api-key-section h3 {
+            color: #92400e;
+            margin-bottom: 10px;
+        }
+        
+        .api-key-section a {
+            color: #2563eb;
+            font-weight: 600;
         }
     </style>
 </head>
@@ -231,21 +249,36 @@
     <div class="container">
         <div class="header">
             <h1>🖼️ Image Redirect Tool</h1>
-            <p>Upload ảnh lên Imgur và tạo link tự động chuyển đến Shopee</p>
+            <p>Upload ảnh lên ImgBB và tạo link tự động chuyển đến Shopee</p>
         </div>
         
         <div class="content">
+            <div class="api-key-section">
+                <h3>🔑 Cần API Key ImgBB (Miễn phí)</h3>
+                <p>1. Truy cập: <a href="https://api.imgbb.com/" target="_blank">https://api.imgbb.com/</a></p>
+                <p>2. Đăng ký tài khoản miễn phí</p>
+                <p>3. Lấy API Key và dán vào ô bên dưới</p>
+                <div class="form-group" style="margin-top: 15px;">
+                    <label>ImgBB API Key của bạn:</label>
+                    <input type="text" id="apiKeyInput" placeholder="Dán API key vào đây...">
+                    <small style="color: #666; display: block; margin-top: 5px;">
+                        Key sẽ được lưu trong trình duyệt này
+                    </small>
+                </div>
+            </div>
+            
             <div class="info-box">
-                <strong>📌 Hướng dẫn:</strong><br>
-                1. Upload ảnh → Tự động lên Imgur<br>
-                2. Nhập link Shopee<br>
-                3. Tạo file HTML và deploy lên GitHub Pages/Netlify để có link online
+                <strong>✅ Ưu điểm ImgBB:</strong><br>
+                • Miễn phí unlimited uploads<br>
+                • Không giới hạn bandwidth<br>
+                • Ảnh lưu vĩnh viễn<br>
+                • Tốc độ nhanh
             </div>
             
             <div class="upload-section" id="uploadSection">
                 <div class="upload-icon">📤</div>
                 <div class="upload-text">Click hoặc kéo thả ảnh vào đây</div>
-                <div class="upload-hint">Hỗ trợ: JPG, PNG, GIF (sẽ upload lên Imgur)</div>
+                <div class="upload-hint">Hỗ trợ: JPG, PNG, GIF (tối đa 32MB)</div>
                 <input type="file" id="fileInput" accept="image/*">
             </div>
             
@@ -264,7 +297,7 @@
                 <input type="url" id="publicImageUrl" placeholder="https://domain.com/image.jpg">
             </div>
             
-            <button class="btn" id="generateBtn">Tạo Link Chia Sẻ</button>
+            <button class="btn" id="generateBtn">🚀 Tạo Link Chia Sẻ</button>
             
             <div class="preview-section" id="previewSection">
                 <img id="previewImage" class="preview-image" alt="Preview">
@@ -297,42 +330,45 @@
         const downloadBtn = document.getElementById('downloadBtn');
         const successMessage = document.getElementById('successMessage');
         const linksList = document.getElementById('linksList');
+        const apiKeyInput = document.getElementById('apiKeyInput');
         
         let currentImageData = null;
         let savedLinks = [];
-        let lastObjectUrl = null;
-        let lastImgurUrl = null;
+        let lastImgBBUrl = null;
         let lastHtmlContent = null;
         
-        // Imgur API Client ID (public demo key - bạn nên tạo key riêng tại https://api.imgur.com/oauth2/addclient)
-        const IMGUR_CLIENT_ID = 'c7b0a2b6c3d4e5f';
+        // Load API key from memory
+        let storedApiKey = '';
+        apiKeyInput.addEventListener('input', (e) => {
+            storedApiKey = e.target.value.trim();
+        });
         
-        // Hàm upload ảnh lên Imgur
-        async function uploadToImgur(base64Image) {
+        // Hàm upload ảnh lên ImgBB
+        async function uploadToImgBB(base64Image) {
+            if (!storedApiKey) {
+                throw new Error('Vui lòng nhập ImgBB API Key!');
+            }
+            
             try {
                 const base64Data = base64Image.split(',')[1];
                 
-                const response = await fetch('https://api.imgur.com/3/image', {
+                const formData = new FormData();
+                formData.append('image', base64Data);
+                
+                const response = await fetch(`https://api.imgbb.com/1/upload?key=${storedApiKey}`, {
                     method: 'POST',
-                    headers: {
-                        'Authorization': `Client-ID ${IMGUR_CLIENT_ID}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        image: base64Data,
-                        type: 'base64'
-                    })
+                    body: formData
                 });
                 
                 const data = await response.json();
                 
-                if (data.success && data.data && data.data.link) {
-                    return data.data.link;
+                if (data.success && data.data && data.data.url) {
+                    return data.data.url;
                 }
                 
-                throw new Error('Imgur API returned error: ' + (data.data?.error || 'Unknown'));
+                throw new Error(data.error?.message || 'ImgBB API error');
             } catch (error) {
-                console.error('Imgur upload error:', error);
+                console.error('ImgBB upload error:', error);
                 throw error;
             }
         }
@@ -365,6 +401,11 @@
         });
         
         function handleFile(file) {
+            if (file.size > 32 * 1024 * 1024) {
+                alert('⚠️ File quá lớn! ImgBB chỉ hỗ trợ tối đa 32MB.');
+                return;
+            }
+            
             const reader = new FileReader();
             reader.onload = (e) => {
                 currentImageData = e.target.result;
@@ -411,6 +452,12 @@
             const shopeeLink = shopeeUrl.value.trim();
             const title = pageTitle.value.trim() || 'Sản phẩm từ Shopee';
             
+            if (!storedApiKey) {
+                alert('❌ Vui lòng nhập ImgBB API Key trước!\n\nTruy cập: https://api.imgbb.com/ để lấy key miễn phí.');
+                apiKeyInput.focus();
+                return;
+            }
+            
             if (!shopeeLink) {
                 alert('Vui lòng nhập link Shopee!');
                 return;
@@ -426,50 +473,46 @@
             }
             
             generateBtn.disabled = true;
-            generateBtn.textContent = '⏳ Đang upload ảnh lên Imgur...';
+            generateBtn.textContent = '⏳ Đang upload ảnh lên ImgBB...';
             
             try {
-                const imgurUrl = await uploadToImgur(currentImageData);
+                const imgbbUrl = await uploadToImgBB(currentImageData);
                 
-                if (!imgurUrl) {
+                if (!imgbbUrl) {
                     throw new Error('Upload ảnh thất bại');
                 }
                 
-                lastImgurUrl = imgurUrl;
-                const ogImage = (publicImageUrl && publicImageUrl.value.trim()) ? publicImageUrl.value.trim() : imgurUrl;
+                lastImgBBUrl = imgbbUrl;
+                const ogImage = (publicImageUrl && publicImageUrl.value.trim()) ? publicImageUrl.value.trim() : imgbbUrl;
 
-                const htmlContent = generateRedirectPage(imgurUrl, shopeeLink, title, ogImage);
+                const htmlContent = generateRedirectPage(imgbbUrl, shopeeLink, title, ogImage);
                 lastHtmlContent = htmlContent;
                 
-                const blob = new Blob([htmlContent], { type: 'text/html' });
-                if (lastObjectUrl) {
-                    try { URL.revokeObjectURL(lastObjectUrl); } catch (e) {}
-                }
-                const url = URL.createObjectURL(blob);
-                lastObjectUrl = url;
-                
                 const linkData = {
-                    url: url,
                     shopeeUrl: shopeeLink,
                     title: title,
-                    image: imgurUrl,
+                    image: imgbbUrl,
                     timestamp: new Date().toLocaleString('vi-VN'),
-                    imgurUrl: imgurUrl
+                    imgbbUrl: imgbbUrl
                 };
                 savedLinks.unshift(linkData);
                 
-                resultUrl.textContent = `✅ Ảnh đã upload: ${imgurUrl}\n\n📥 Bấm "Tải file HTML" và deploy lên:\n• GitHub Pages (github.io)\n• Netlify Drop\n• Vercel\n• Hosting bất kỳ`;
+                resultUrl.textContent = `✅ Ảnh đã upload thành công!\n\nLink ảnh ImgBB: ${imgbbUrl}\n\n📥 Bấm "Tải file HTML" bên dưới và deploy lên:\n• GitHub Pages\n• Netlify Drop  \n• Vercel\n• Hosting bất kỳ`;
                 resultSection.style.display = 'block';
-                successMessage.textContent = '✅ Upload thành công!';
+                successMessage.textContent = '✅ Upload thành công! Có thể tải file HTML ngay.';
                 
                 updateLinksList();
                 
             } catch (error) {
-                alert('❌ Lỗi: ' + error.message + '\n\nLưu ý: API Imgur có giới hạn. Vui lòng thử lại sau hoặc dùng API key riêng.');
+                let errorMsg = error.message;
+                if (errorMsg.includes('Invalid API key')) {
+                    errorMsg = 'API Key không hợp lệ! Vui lòng kiểm tra lại.';
+                }
+                alert('❌ Lỗi: ' + errorMsg);
                 console.error(error);
             } finally {
                 generateBtn.disabled = false;
-                generateBtn.textContent = 'Tạo Link Chia Sẻ';
+                generateBtn.textContent = '🚀 Tạo Link Chia Sẻ';
             }
         });
         
@@ -575,14 +618,21 @@
         }
         
         copyBtn.addEventListener('click', async () => {
-            const url = lastImgurUrl || resultUrl.textContent;
+            const url = lastImgBBUrl || '';
+            if (!url) {
+                alert('Chưa có link để copy!');
+                return;
+            }
             const ok = await copyToClipboard(url);
-            successMessage.textContent = ok ? '✅ Đã copy link ảnh!' : '❌ Copy thất bại';
+            successMessage.textContent = ok ? '✅ Đã copy link ảnh ImgBB!' : '❌ Copy thất bại';
             setTimeout(() => { successMessage.textContent = ''; }, 2000);
         });
 
         downloadBtn.addEventListener('click', () => {
-            if (!lastHtmlContent) return;
+            if (!lastHtmlContent) {
+                alert('Chưa có file HTML để tải!');
+                return;
+            }
             const blob = new Blob([lastHtmlContent], { type: 'text/html' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -606,13 +656,13 @@
                 linkItem.style.alignItems = 'center';
                 
                 linkItem.innerHTML = `
-                    <img src="${link.imgurUrl || link.image}" alt="thumb">
+                    <img src="${link.imgbbUrl || link.image}" alt="thumb">
                     <div class="link-info">
                         <strong>${link.title || 'Redirect Link'}</strong>
-                        <div class="link-url">Ảnh Imgur: ${link.imgurUrl || 'N/A'}</div>
+                        <div class="link-url">Ảnh ImgBB: ${link.imgbbUrl || 'N/A'}</div>
                         <div class="link-url">Shopee: ${link.shopeeUrl}</div>
                         <small>Tạo lúc: ${link.timestamp}</small><br>
-                        <button class="btn copy-btn" style="margin-top: 10px; padding: 8px 20px; font-size: 14px;" onclick="copyLink('${link.imgurUrl || link.image}')">
+                        <button class="btn copy-btn" style="margin-top: 10px; padding: 8px 20px; font-size: 14px;" onclick="copyLink('${link.imgbbUrl || link.image}')">
                             📋 Copy Link Ảnh
                         </button>
                     </div>
