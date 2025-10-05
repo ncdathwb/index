@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Redirect Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .upload-section {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .upload-section:hover {
+            border-color: #764ba2;
+            background: #f8f9ff;
+        }
+        
+        .upload-section.dragover {
+            background: #e8eaff;
+            border-color: #764ba2;
+        }
+        
+        #fileInput {
+            display: none;
+        }
+        
+        .upload-icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+            color: #667eea;
+        }
+        
+        .upload-text {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .upload-hint {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .preview-section {
+            display: none;
+            margin-top: 30px;
+        }
+        
+        .preview-image {
+            max-width: 100%;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .result-section {
+            display: none;
+            background: #f8f9ff;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        
+        .result-url {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            word-break: break-all;
+            font-family: monospace;
+            border: 1px solid #ddd;
+        }
+        
+        .copy-btn {
+            background: #10b981;
+            margin-top: 10px;
+        }
+        
+        .copy-btn:hover {
+            background: #059669;
+        }
+        
+        .links-list {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid #eee;
+        }
+        
+        .link-item {
+            background: #f8f9ff;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .link-item img {
+            max-width: 100px;
+            border-radius: 5px;
+            margin-right: 15px;
+        }
+        
+        .link-info {
+            flex: 1;
+        }
+        
+        .link-url {
+            font-size: 12px;
+            color: #666;
+            word-break: break-all;
+            margin: 5px 0;
+        }
+        
+        .success-message {
+            color: #10b981;
+            text-align: center;
+            margin-top: 10px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🖼️ Image Redirect Tool</h1>
+            <p>Upload ảnh và tạo link tự động chuyển đến Shopee</p>
+        </div>
+        
+        <div class="content">
+            <div class="upload-section" id="uploadSection">
+                <div class="upload-icon">📤</div>
+                <div class="upload-text">Click hoặc kéo thả ảnh vào đây</div>
+                <div class="upload-hint">Hỗ trợ: JPG, PNG, GIF</div>
+                <input type="file" id="fileInput" accept="image/*">
+            </div>
+            
+            <div class="form-group">
+                <label>Link Shopee của bạn:</label>
+                <input type="url" id="shopeeUrl" placeholder="https://shopee.vn/..." required>
+            </div>
+            
+            
+            
+            <div class="form-group">
+                <label>URL ảnh công khai (để hiển thị khi share MXH):</label>
+                <input type="url" id="publicImageUrl" placeholder="https://domain.com/image.jpg">
+            </div>
+            
+            <button class="btn" id="generateBtn">Tạo Link Chia Sẻ</button>
+            
+            <div class="preview-section" id="previewSection">
+                <img id="previewImage" class="preview-image" alt="Preview">
+            </div>
+            
+            <div class="result-section" id="resultSection">
+                <h3>✅ Link của bạn đã sẵn sàng!</h3>
+                <div class="result-url" id="resultUrl"></div>
+                <button class="btn copy-btn" id="copyBtn">📋 Copy Link</button>
+                <button class="btn" id="downloadBtn" style="margin-left: 10px;">⬇️ Tải file HTML</button>
+                <div class="success-message" id="successMessage"></div>
+            </div>
+            
+            <div class="links-list" id="linksList"></div>
+        </div>
+    </div>
+
+    <script>
+        const uploadSection = document.getElementById('uploadSection');
+        const fileInput = document.getElementById('fileInput');
+        const previewSection = document.getElementById('previewSection');
+        const previewImage = document.getElementById('previewImage');
+        const shopeeUrl = document.getElementById('shopeeUrl');
+        
+        const publicImageUrl = document.getElementById('publicImageUrl');
+        const generateBtn = document.getElementById('generateBtn');
+        const resultSection = document.getElementById('resultSection');
+        const resultUrl = document.getElementById('resultUrl');
+        const copyBtn = document.getElementById('copyBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const successMessage = document.getElementById('successMessage');
+        const linksList = document.getElementById('linksList');
+        
+        let currentImageData = null;
+        let savedLinks = [];
+        let lastObjectUrl = null;
+
+        // Click to upload
+        uploadSection.addEventListener('click', () => fileInput.click());
+        
+        // Drag and drop
+        uploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadSection.classList.add('dragover');
+        });
+        
+        uploadSection.addEventListener('dragleave', () => {
+            uploadSection.classList.remove('dragover');
+        });
+        
+        uploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                handleFile(file);
+            }
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        });
+        
+        function handleFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                currentImageData = e.target.result;
+                previewImage.src = currentImageData;
+                previewSection.style.display = 'block';
+                resultSection.style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        function isValidShopeeUrl(u) {
+            try {
+                const parsed = new URL(u);
+                if (!/^https?:$/.test(parsed.protocol)) return false;
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        async function copyToClipboard(text) {
+            try {
+                await navigator.clipboard.writeText(text);
+                return true;
+            } catch (e) {
+                try {
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.style.position = 'fixed';
+                    ta.style.left = '-9999px';
+                    document.body.appendChild(ta);
+                    ta.focus();
+                    ta.select();
+                    const ok = document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    return ok;
+                } catch (err) {
+                    return false;
+                }
+            }
+        }
+
+        generateBtn.addEventListener('click', () => {
+            const shopeeLink = shopeeUrl.value.trim();
+            const title = '';
+            
+            if (!shopeeLink) {
+                alert('Vui lòng nhập link Shopee!');
+                return;
+            }
+            if (!isValidShopeeUrl(shopeeLink)) {
+                alert('Link không hợp lệ. Vui lòng nhập URL bắt đầu bằng http hoặc https.');
+                return;
+            }
+            
+            if (!currentImageData) {
+                alert('Vui lòng chọn ảnh!');
+                return;
+            }
+            
+            // Chọn ảnh cho OG: ưu tiên ảnh công khai nếu có
+            const ogImage = (publicImageUrl && publicImageUrl.value.trim()) ? publicImageUrl.value.trim() : currentImageData;
+
+            // Tạo HTML page với redirect
+            const htmlContent = generateRedirectPage(currentImageData, shopeeLink, title, ogImage);
+            
+            // Tạo blob và URL
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            if (lastObjectUrl) {
+                try { URL.revokeObjectURL(lastObjectUrl); } catch (e) {}
+            }
+            const url = URL.createObjectURL(blob);
+            lastObjectUrl = url;
+            
+            // Lưu link
+            const linkData = {
+                url: url,
+                shopeeUrl: shopeeLink,
+                title: title,
+                image: currentImageData,
+                timestamp: new Date().toLocaleString('vi-VN')
+            };
+            savedLinks.unshift(linkData);
+            
+            // Hiển thị kết quả
+            resultUrl.textContent = url;
+            resultSection.style.display = 'block';
+            successMessage.textContent = '';
+            
+            // Cập nhật danh sách links
+            updateLinksList();
+        });
+        
+        function generateRedirectPage(imageData, shopeeLink, title, ogImageUrl) {
+            return `<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${title}</title>
+    
+    <!-- OG tối giản: chỉ cung cấp ảnh để bài đăng hiện ảnh -->
+    <meta property="og:image" content="${ogImageUrl}">
+    <meta property="og:type" content="website">
+    <meta http-equiv="refresh" content="1;url=${shopeeLink}">
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #f5f5f5;
+            cursor: pointer;
+        }
+        .container {
+            text-align: center;
+            padding: 20px;
+            max-width: 600px;
+        }
+        img {
+            max-width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        img:hover {
+            transform: scale(1.05);
+        }
+        .message {
+            margin-top: 20px;
+            font-size: 18px;
+            color: #333;
+        }
+        .redirect-btn {
+            margin-top: 20px;
+            padding: 15px 30px;
+            background: #ee4d2d;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .redirect-btn:hover {
+            background: #d73211;
+        }
+    </style>
+    
+    <script>
+        // Auto redirect sau 1 giây
+        setTimeout(() => {
+            window.location.href = '${shopeeLink}';
+        }, 1000);
+        
+        // Click anywhere to redirect
+        document.addEventListener('DOMContentLoaded', () => {
+            document.body.addEventListener('click', () => {
+                window.location.href = '${shopeeLink}';
+            });
+        });
+    <\/script>
+</head>
+<body>
+    <div class="container">
+        <img src="${imageData}" alt="${title}">
+        <div class="message">Đang chuyển đến Shopee...</div>
+        <button class="redirect-btn" onclick="window.location.href='${shopeeLink}'">
+            🛒 Xem ngay trên Shopee
+        </button>
+    </div>
+</body>
+</html>`;
+        }
+        
+        copyBtn.addEventListener('click', async () => {
+            const url = resultUrl.textContent;
+            const ok = await copyToClipboard(url);
+            successMessage.textContent = ok ? '✅ Đã copy link!' : '❌ Copy thất bại';
+            setTimeout(() => { successMessage.textContent = ''; }, 2000);
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            if (!lastObjectUrl) return;
+            const a = document.createElement('a');
+            a.href = lastObjectUrl;
+            a.download = 'redirect.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        });
+        
+        function updateLinksList() {
+            if (savedLinks.length === 0) return;
+            
+            linksList.innerHTML = '<h3 style="margin-bottom: 15px;">📝 Danh sách links đã tạo:</h3>';
+            
+            savedLinks.forEach((link, index) => {
+                const linkItem = document.createElement('div');
+                linkItem.className = 'link-item';
+                linkItem.style.display = 'flex';
+                linkItem.style.alignItems = 'center';
+                
+                linkItem.innerHTML = `
+                    <img src="${link.image}" alt="thumb">
+                    <div class="link-info">
+                        <strong>${link.title}</strong>
+                        <div class="link-url">${link.url}</div>
+                        <small>Tạo lúc: ${link.timestamp}</small><br>
+                        <button class="btn copy-btn" style="margin-top: 10px; padding: 8px 20px; font-size: 14px;" onclick="copyLink('${link.url}')">
+                            📋 Copy
+                        </button>
+                    </div>
+                `;
+                
+                linksList.appendChild(linkItem);
+            });
+        }
+        
+        window.copyLink = async function(url) {
+            const ok = await copyToClipboard(url);
+            alert(ok ? '✅ Đã copy link!' : '❌ Copy thất bại');
+        };
+    </script>
+</body>
+</html>
